@@ -1,50 +1,47 @@
 // src/jobs/jobs.service.ts
 
 import { Injectable, InternalServerErrorException } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config'; // Import ConfigService
+import { ConfigService } from '@nestjs/config';
 import { SupabaseClient } from '@supabase/supabase-js';
-import OpenAI from 'openai'; // Import OpenAI
+import OpenAI from 'openai';
 import { SupabaseService } from '../supabase/supabase.service';
 
 @Injectable()
 export class JobsService {
   private supabase: SupabaseClient;
-  private openai: OpenAI; // Add a property for the OpenAI client
+  private openai: OpenAI;
 
-  // Inject both SupabaseService and ConfigService
   constructor(
     private readonly supabaseService: SupabaseService,
     private readonly configService: ConfigService,
   ) {
     this.supabase = this.supabaseService.getClient();
-
-    // Create a new instance of the OpenAI client with your API key
     this.openai = new OpenAI({
       apiKey: this.configService.get<string>('OPENAI_API_KEY'),
     });
   }
 
-  // The function is now renamed to reflect its new purpose
   async createAndParseJob(jdText: string) {
-    // --- Step 1: Save the initial job to Supabase (Same as before) ---
+    // --- Step 1: Save the initial job to Supabase ---
     console.log('Saving new job description to Supabase...');
-    const { data: job, error: insertError } = await this.supabase
+    const { data: newJob, error: insertError } = await this.supabase
       .from('jobs')
       .insert({ jd_text: jdText, status: 'pending' })
       .select()
       .single();
 
-    if (insertError) {
-      console.error('Error saving job:', insertError.message);
+    if (insertError || !newJob) {
+      console.error('Error saving job:', insertError?.message || 'Job data was null');
       throw new InternalServerErrorException('Could not save job to database.');
     }
-    console.log('Job saved successfully with ID:', job.id);
+
+    console.log('Job saved successfully with ID:', newJob.id);
 
     // --- Step 2: Call OpenAI to parse the job description ---
-    console.log('Sending job description to OpenAI for parsing...');
     try {
+      console.log('Sending job description to OpenAI for parsing...');
       const response = await this.openai.chat.completions.create({
-        model: 'gpt-4o', // Or 'gpt-3.5-turbo' for a faster, cheaper option
+        model: 'gpt-4o',
         messages: [
           {
             role: 'system',
@@ -56,18 +53,22 @@ export class JobsService {
             content: jdText,
           },
         ],
-        // This forces OpenAI to respond with a JSON object that matches our schema
         response_format: { type: 'json_object' },
       });
-
-      const parsedReq = JSON.parse(response.choices[0].message.content);
+      
+      const messageContent = response.choices[0].message.content;
+      if (!messageContent) {
+        throw new Error('OpenAI returned an empty response.');
+      }
+      
+      const parsedReq = JSON.parse(messageContent);
       console.log('Successfully parsed JD from OpenAI:', parsedReq);
 
       // --- Step 3: Update the job in Supabase with the parsed data ---
       const { data: updatedJob, error: updateError } = await this.supabase
         .from('jobs')
         .update({ parsed_req: parsedReq, status: 'parsed' })
-        .eq('id', job.id)
+        .eq('id', newJob.id)
         .select()
         .single();
       
@@ -79,7 +80,6 @@ export class JobsService {
 
     } catch (e) {
       console.error('Error calling OpenAI or updating the job:', e);
-      // If AI fails, we should still return the job that was created
       throw new InternalServerErrorException('Failed to parse job description with AI.');
     }
   }
