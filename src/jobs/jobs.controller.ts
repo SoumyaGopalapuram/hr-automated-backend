@@ -1,27 +1,50 @@
 // src/jobs/jobs.controller.ts
-import { Controller, Post, Get, Body } from '@nestjs/common';  // ✅ Added Get
-import { JobsService } from './jobs.service';
-import { SupabaseService } from '../supabase/supabase.service'; // ✅ Import SupabaseService
-//import { JobDto } from './dto/create-job.dto';
-
-class JobDto {
-  job_description: string;
-  location: string;
-  years_experience: number;
-  visa_status: string;
-}
+import { Controller, Post, Get, Body } from '@nestjs/common';
+import { SupabaseService } from '../supabase/supabase.service';
+import { OpenaiService } from '../openai/openai.service';
+import { JobDto } from './dto/create-job.dto';
 
 @Controller('jobs')
 export class JobsController {
   constructor(
-    private readonly jobsService: JobsService,
-    private readonly supabaseService: SupabaseService,  // ✅ Injected SupabaseService
+    private readonly supabaseService: SupabaseService,
+    private readonly openaiService: OpenaiService,
   ) {}
 
   @Post()
 async createJob(@Body() body: JobDto) {
-  const data = await this.supabaseService.insertJob(body);
-  return { success: true, data };
+  // 1️⃣ Store job in Supabase
+  const savedJob = await this.supabaseService.insertJob(body);
+
+  // 2️⃣ Extract only skills from OpenAI
+  const aiResult = await this.openaiService.extractMetadata(savedJob.job_description);
+
+
+  // 3️⃣ Insert metadata into job_metadata table
+  const supabase = this.supabaseService.getClient();
+  const { data: meta, error: metaError } = await supabase
+  .from('job_metadata')
+  .insert({
+    job_id: savedJob.id,
+    skills: aiResult.skills,
+    location: savedJob.location,
+    years_experience: savedJob.years_experience,
+    visa_status: savedJob.visa_status,
+  })
+  .select()
+  .single();
+
+if (metaError) {
+  console.error('Metadata insert failed:', metaError); // 👈 log exact issue
+  throw new Error(`Failed to insert AI metadata: ${metaError.message}`);
+}
+
+  // 4️⃣ Return both job and metadata
+  return {
+    success: true,
+    job: savedJob,
+    metadata: meta,
+  };
 }
 
 
@@ -38,8 +61,4 @@ async createJob(@Body() body: JobDto) {
     }
     return { success: true, data };
   }
-
-
 }
-
-
