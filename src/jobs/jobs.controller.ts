@@ -7,6 +7,7 @@ import { RedisService } from '../redis/redis.service';
 //import { Controller, Post, Body } from '@nestjs/common';
 import { JobsService } from './jobs.service';
 //import { JobDto } from './dto/create-job.dto';
+import { ResumesService } from '../resumes/resume.service';
 
 
 
@@ -16,45 +17,25 @@ export class JobsController {
     private readonly supabaseService: SupabaseService,
     private readonly openaiService: OpenaiService,
     private readonly redisService: RedisService,
-    private readonly jobsService: JobsService
+    private readonly jobsService: JobsService,
+    private readonly resumesService: ResumesService,
   ) {}
 
   @Post()
 async createJob(@Body() jobDto: JobDto) {
-  // 1️⃣ Store job in Supabase
-//   const savedJob = await this.supabaseService.insertJob(body);
-
-//   // 2️⃣ Extract only skills from OpenAI
-//   const aiResult = await this.openaiService.extractMetadata(savedJob.job_description);
-
-
-//   // 3️⃣ Insert metadata into job_metadata table
-//   const supabase = this.supabaseService.getClient();
-//   const { data: meta, error: metaError } = await supabase
-//   .from('job_metadata')
-//   .insert({
-//     job_id: savedJob.id,
-//     skills: aiResult.skills,
-//     location: savedJob.location,
-//     years_experience: savedJob.years_experience,
-//     visa_status: savedJob.visa_status,
-//   })
-//   .select()
-//   .single();
-
-// if (metaError) {
-//   console.error('Metadata insert failed:', metaError); // 👈 log exact issue
-//   throw new Error(`Failed to insert AI metadata: ${metaError.message}`);
-// }
-
-//   // 4️⃣ Return both job and metadata
-//   return {
-//     success: true,
-//     //job: savedJob,
-//     metadata: meta,
-//   };
   return await this.jobsService.createJob(jobDto);
 }
+
+@Post('create-and-match')
+  async createAndMatch(@Body() jobDto: JobDto) {
+    // 1️⃣ Create job + metadata
+    const { job, metadata } = await this.jobsService.createJob(jobDto);
+
+    // 2️⃣ Fetch top matching resumes
+    const matches = await this.resumesService.getRelevantResumes(job.id, 26);
+
+    return { job, metadata, matches };
+  }
 
 
   @Get('test-connection')
