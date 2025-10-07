@@ -1,7 +1,7 @@
 {
   "name": "hr-automation-backend",
   "version": "0.0.1",
-  "description": "",
+  "description": "abc",
   "author": "",
   "private": true,
   "license": "UNLICENSED",
@@ -26,6 +26,7 @@
     "@nestjs/platform-express": "^11.0.1",
     "@supabase/supabase-js": "^2.56.0",
     "axios": "^1.11.0",
+    "bootstrap": "^5.3.8",
     "dotenv": "^17.2.1",
     "ioredis": "^5.7.0",
     "openai": "^5.16.0",
@@ -77,5 +78,17 @@
     ],
     "coverageDirectory": "../coverage",
     "testEnvironment": "node"
-  }
+  },
+  "main": "index.js",
+  "directories": {
+    "test": "test"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/SoumyaGopalapuram/hr-automated-backend.git"
+  },
+  "bugs": {
+    "url": "https://github.com/SoumyaGopalapuram/hr-automated-backend/issues"
+  },
+  "homepage": "https://github.com/SoumyaGopalapuram/hr-automated-backend#readme"
 }

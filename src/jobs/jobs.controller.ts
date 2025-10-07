@@ -32,7 +32,7 @@ async createJob(@Body() jobDto: JobDto) {
     const { job, metadata } = await this.jobsService.createJob(jobDto);
 
     // 2️⃣ Fetch top matching resumes
-    const matches = await this.resumesService.getRelevantResumes(job.id, 26);
+    const matches = await this.resumesService.getRelevantResumes(job.id, 10);
 
     return { job, metadata, matches };
   }

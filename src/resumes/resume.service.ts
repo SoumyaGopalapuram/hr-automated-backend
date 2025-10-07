@@ -9,7 +9,7 @@ export class ResumesService {
   /**
    * Fetch relevant resumes based on job ID
    */
-  async getRelevantResumes(jobId: number, limit = 20) {
+  async getRelevantResumes(jobId: number, limit = 10) {
     const supabase = this.supabaseService.getClient();
 
     // Call the PostgreSQL function
