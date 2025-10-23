@@ -74,11 +74,24 @@ function Home() {
             className="w-full border border-gray-300 p-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
           />
           <button
+              type="submit"
+              className="w-full bg-blue-600 text-white p-3 rounded-lg font-bold hover:bg-blue-700 transition transform hover:scale-105 d-flex justify-content-center align-items-center"
+>
+              {loading ? (
+                <>
+                <div className="spinner-border spinner-border-sm me-2" role="status"></div>
+                  Matching...
+                </>
+              ) : (
+                    'Find Matches'
+                  )}
+          </button>
+          {/* <button
             type="submit"
             className="w-full bg-blue-600 text-white p-3 rounded-lg font-bold hover:bg-blue-700 transition transform hover:scale-105"
           >
             {loading ? 'Matching...' : 'Find Matches'}
-          </button>
+          </button> */}
         </form>
 
         <div className="mt-8">
